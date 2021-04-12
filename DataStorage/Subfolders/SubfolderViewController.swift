@@ -130,8 +130,6 @@ class SubfolderViewController: UIViewController, UIImagePickerControllerDelegate
     private func setupNavigationBar() {
         navigationItem.title = subfolderTitle
         
-        navigationController?.navigationBar.backgroundColor = .white
-        
         let folderButtonImage = UIImage(systemName: "folder.badge.plus")
         let imageButtonImage = UIImage(systemName: "plus")
         

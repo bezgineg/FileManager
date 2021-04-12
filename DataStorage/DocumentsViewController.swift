@@ -22,9 +22,27 @@ class DocumentsViewController: UIViewController, UIImagePickerControllerDelegate
         super.viewDidLoad()
         
         setupNavigationBar()
-        readData()
+        setDefaultPreferences()
         setupLayout()
         
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        readData()
+        collectionView.reloadData()
+    }
+    
+    private func setDefaultPreferences() {
+        if UserDefaults.standard.integer(forKey: Keys.sortingIntKey.rawValue) == 0
+            && UserDefaults.standard.integer(forKey: Keys.imageSizeIntKey.rawValue) == 0 {
+            
+            UserDefaults.standard.setValue(1, forKey: Keys.sortingIntKey.rawValue)
+            UserDefaults.standard.setValue(1, forKey: Keys.imageSizeIntKey.rawValue)
+            
+            UserDefaults.standard.setValue(true, forKey: Keys.sortingBoolKey.rawValue)
+            UserDefaults.standard.setValue(true, forKey: Keys.imageSizeBoolKey.rawValue)
+        }
     }
     
     private func getDocumentsDirectory() -> URL {
@@ -37,13 +55,13 @@ class DocumentsViewController: UIViewController, UIImagePickerControllerDelegate
         
         var inputTextField: UITextField?
         
-        let alertController = UIAlertController(title: "New folder", message: "Enter folder name", preferredStyle: .alert)
+        let alertController = UIAlertController(title: "Создание новой папки", message: "Введите имя папки", preferredStyle: .alert)
         alertController.addTextField { (textField ) in
-            textField.placeholder = "Enter folder name"
+            textField.placeholder = "Введите имя папки"
             inputTextField = textField
         }
 
-        let saveAction = UIAlertAction(title: "Save", style: .default) { [weak self] _ in
+        let saveAction = UIAlertAction(title: "Сохранить", style: .default) { [weak self] _ in
 
             if let folderName = inputTextField?.text {
                 self?.saveFolder(folderName: folderName)
@@ -55,7 +73,7 @@ class DocumentsViewController: UIViewController, UIImagePickerControllerDelegate
             }
         }
         
-        let cancelAction = UIAlertAction(title: "Cancel", style: .cancel) { _ in }
+        let cancelAction = UIAlertAction(title: "Отмена", style: .cancel) { _ in }
         
         alertController.addAction(saveAction)
         alertController.addAction(cancelAction)
@@ -69,6 +87,7 @@ class DocumentsViewController: UIViewController, UIImagePickerControllerDelegate
         
         do {
             try fileManager.createDirectory(at: directoryURL, withIntermediateDirectories: true)
+            print(directoryURL)
         }
         catch let error as NSError {
             print(error.debugDescription)
@@ -90,10 +109,10 @@ class DocumentsViewController: UIViewController, UIImagePickerControllerDelegate
     
     func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
         let tempImage = info[UIImagePickerController.InfoKey.originalImage] as! UIImage
-        let imageName = UUID().uuidString + ".jpeg"
-        let imagePath = getDocumentsDirectory().appendingPathComponent(imageName)
-        
+               
         if let jpegData = tempImage.jpegData(compressionQuality: 1.0) {
+            let imageName = UUID().uuidString + ".jpeg"
+            let imagePath = getDocumentsDirectory().appendingPathComponent(imageName)
             try? jpegData.write(to: imagePath)
         }
 
@@ -114,15 +133,42 @@ class DocumentsViewController: UIViewController, UIImagePickerControllerDelegate
                         files.append(item)
                     }
                 }
+
             }
+            checkingSortingPreference()
         } catch {
-            print("Bad permission")
+            print("Ошибка")
         }
         
     }
     
+    private func checkingSortingPreference() {
+        let boolValue = UserDefaults.standard.bool(forKey: Keys.sortingBoolKey.rawValue)
+        if boolValue {
+            files.sort(by: <)
+        } else {
+            files.sort(by: >)
+        }
+    }
+    
+    private func showImageSize(with file: String, path: URL) -> String {
+        
+        var value: String = ""
+        if file.hasSuffix("jpeg") {
+
+            let imageSize =  UIImage(contentsOfFile: path.path)?.jpegData(compressionQuality: 1)?.count
+            
+            let number = NSString(format: "%.2f", (Double(imageSize ?? 0) / 1024 / 1024)) as String
+            value = number
+        }
+        return value
+    }
+    
     private func setupNavigationBar() {
-        navigationItem.title = "Documents"
+        navigationItem.title = "Документы"
+        navigationController?.navigationBar.backgroundColor = .white
+        navigationController?.navigationBar.isHidden = false
+        navigationItem.hidesBackButton = true
         
         let folderButtonImage = UIImage(systemName: "folder.badge.plus")
         let imageButtonImage = UIImage(systemName: "plus")
@@ -177,7 +223,6 @@ extension DocumentsViewController: UICollectionViewDelegateFlowLayout {
             let path = getDocumentsDirectory().appendingPathComponent(item)
             let vc = SubfolderViewController(subfolderTitle: item, path: path)
             self.navigationController?.pushViewController(vc, animated: true)
-            
         }
     }
 }
@@ -196,7 +241,14 @@ extension DocumentsViewController: UICollectionViewDataSource {
         
         if let folderImage = UIImage(systemName: "folder.fill") {
             cell.configure(with: UIImage(contentsOfFile: path.path) ?? folderImage, name: file)
+        }
+        
+        if UserDefaults.standard.bool(forKey: Keys.imageSizeBoolKey.rawValue) {
+            let value = showImageSize(with: file, path: path)
             
+            if let image = UIImage(contentsOfFile: path.path) {
+                cell.configure(with: image, name: "\(value) MB \(file)" )
+            }
         }
         
         return cell
