@@ -25,9 +25,16 @@ class SubfolderViewController: UIViewController, UIImagePickerControllerDelegate
         super.viewDidLoad()
         
         setupNavigationBar()
-        readData(path: path)
+        setDefaultPreferences()
         setupLayout()
+        print(UserDefaults.standard.bool(forKey: Keys.imageSizeBoolKey.rawValue))
         
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        readData(path: path)
+        collectionView.reloadData()
     }
     
     init(subfolderTitle: String, path: URL) {
@@ -41,17 +48,29 @@ class SubfolderViewController: UIViewController, UIImagePickerControllerDelegate
         fatalError("init(coder:) has not been implemented")
     }
     
+    private func setDefaultPreferences() {
+        if UserDefaults.standard.integer(forKey: Keys.sortingIntKey.rawValue) == 0
+            && UserDefaults.standard.integer(forKey: Keys.imageSizeIntKey.rawValue) == 0 {
+            
+            UserDefaults.standard.setValue(1, forKey: Keys.sortingIntKey.rawValue)
+            UserDefaults.standard.setValue(1, forKey: Keys.imageSizeIntKey.rawValue)
+            
+            UserDefaults.standard.setValue(true, forKey: Keys.sortingBoolKey.rawValue)
+            UserDefaults.standard.setValue(true, forKey: Keys.imageSizeBoolKey.rawValue)
+        }
+    }
+    
     @objc func createFolder() {
         
         var inputTextField: UITextField?
         
-        let alertController = UIAlertController(title: "New folder", message: "Enter folder name", preferredStyle: .alert)
+        let alertController = UIAlertController(title: "Создание новой папки", message: "Введите имя папки", preferredStyle: .alert)
         alertController.addTextField { (textField ) in
-            textField.placeholder = "Enter folder name"
+            textField.placeholder = "Введите имя папки"
             inputTextField = textField
         }
 
-        let saveAction = UIAlertAction(title: "Save", style: .default) { [weak self] _ in
+        let saveAction = UIAlertAction(title: "Сохранить", style: .default) { [weak self] _ in
 
             if let folderName = inputTextField?.text {
                 self?.saveFolder(folderName: folderName)
@@ -64,7 +83,7 @@ class SubfolderViewController: UIViewController, UIImagePickerControllerDelegate
             
         }
         
-        let cancelAction = UIAlertAction(title: "Cancel", style: .cancel) { _ in }
+        let cancelAction = UIAlertAction(title: "Отмена", style: .cancel) { _ in }
         
         alertController.addAction(saveAction)
         alertController.addAction(cancelAction)
@@ -98,16 +117,17 @@ class SubfolderViewController: UIViewController, UIImagePickerControllerDelegate
     
     func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
         let tempImage = info[UIImagePickerController.InfoKey.originalImage] as! UIImage
-        let imageName = UUID().uuidString + ".jpeg"
-        let imagePath = path.appendingPathComponent(imageName)
         
         if let jpegData = tempImage.jpegData(compressionQuality: 1.0) {
+            let imageName = UUID().uuidString + ".jpeg"
+            let imagePath = path.appendingPathComponent(imageName)
             try? jpegData.write(to: imagePath)
         }
 
-        dismiss(animated: true, completion: nil)
         readData(path: path)
         collectionView.reloadData()
+        
+        dismiss(animated: true, completion: nil)
         
     }
     
@@ -121,10 +141,33 @@ class SubfolderViewController: UIViewController, UIImagePickerControllerDelegate
                     }
                 }
             }
+            checkingSortingPreference()
         } catch {
             print("Bad permission")
         }
         
+    }
+    
+    private func checkingSortingPreference() {
+        let boolValue = UserDefaults.standard.bool(forKey: Keys.sortingBoolKey.rawValue)
+        if boolValue {
+            files.sort(by: <)
+        } else {
+            files.sort(by: >)
+        }
+    }
+    
+    private func showImageSize(with file: String, path: URL) -> String {
+        
+        var value: String = ""
+        if file.hasSuffix("jpeg") {
+
+            let imageSize =  UIImage(contentsOfFile: path.path)?.jpegData(compressionQuality: 1)?.count
+            
+            let number = NSString(format: "%.2f", (Double(imageSize ?? 0) / 1024 / 1024)) as String
+            value = number
+        }
+        return value
     }
     
     private func setupNavigationBar() {
@@ -197,12 +240,20 @@ extension SubfolderViewController: UICollectionViewDataSource {
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: String(describing: SubfolderCollectionViewCell.self), for: indexPath) as! SubfolderCollectionViewCell
         
-        let image = files[indexPath.item]
+        let file = files[indexPath.item]
 
-        let imagePath = path.appendingPathComponent(image)
+        let imagePath = path.appendingPathComponent(file)
         if let folderImage = UIImage(systemName: "folder.fill") {
-            cell.configure(with: UIImage(contentsOfFile: imagePath.path) ?? folderImage, name: image)
+            cell.configure(with: UIImage(contentsOfFile: imagePath.path) ?? folderImage, name: file)
             
+        }
+        
+        if UserDefaults.standard.bool(forKey: Keys.imageSizeBoolKey.rawValue) {
+            let value = showImageSize(with: file, path: imagePath)
+            
+            if let image = UIImage(contentsOfFile: imagePath.path) {
+                cell.configure(with: image, name: "\(value) MB \(file)" )
+            }
         }
         
         return cell
