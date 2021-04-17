@@ -3,9 +3,8 @@ import UIKit
 
 enum Keys: String {
     case sortingBoolKey
-    case imageSizeBoolKey
-    case sortingIntKey
-    case imageSizeIntKey
+    case imageSizeShowingBoolKey
+    case isFirstLaunchBoolKey
 }
 
 class SettingsViewController: UIViewController {
@@ -40,7 +39,7 @@ class SettingsViewController: UIViewController {
     }
     
     private func setupImageSizeSwitchControl(_ switchControl: UISwitch) {
-        let boolValue = UserDefaults.standard.bool(forKey: Keys.imageSizeBoolKey.rawValue)
+        let boolValue = UserDefaults.standard.bool(forKey: Keys.imageSizeShowingBoolKey.rawValue)
         if boolValue {
             switchControl.setOn(true, animated: true)
         } else {
@@ -59,9 +58,9 @@ class SettingsViewController: UIViewController {
     
     @objc private func imageSizeSwitchChanged(_ sender: UISwitch) {
         if sender.isOn {
-            UserDefaults.standard.setValue(true, forKey: Keys.imageSizeBoolKey.rawValue)
+            UserDefaults.standard.setValue(true, forKey: Keys.imageSizeShowingBoolKey.rawValue)
         } else {
-            UserDefaults.standard.setValue(false, forKey: Keys.imageSizeBoolKey.rawValue)
+            UserDefaults.standard.setValue(false, forKey: Keys.imageSizeShowingBoolKey.rawValue)
         }
     }
     

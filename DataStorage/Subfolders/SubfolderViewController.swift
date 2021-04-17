@@ -27,7 +27,6 @@ class SubfolderViewController: UIViewController, UIImagePickerControllerDelegate
         setupNavigationBar()
         setDefaultPreferences()
         setupLayout()
-        print(UserDefaults.standard.bool(forKey: Keys.imageSizeBoolKey.rawValue))
         
     }
     
@@ -49,14 +48,11 @@ class SubfolderViewController: UIViewController, UIImagePickerControllerDelegate
     }
     
     private func setDefaultPreferences() {
-        if UserDefaults.standard.integer(forKey: Keys.sortingIntKey.rawValue) == 0
-            && UserDefaults.standard.integer(forKey: Keys.imageSizeIntKey.rawValue) == 0 {
+        if !UserDefaults.standard.bool(forKey: Keys.isFirstLaunchBoolKey.rawValue) {
             
-            UserDefaults.standard.setValue(1, forKey: Keys.sortingIntKey.rawValue)
-            UserDefaults.standard.setValue(1, forKey: Keys.imageSizeIntKey.rawValue)
-            
+            UserDefaults.standard.setValue(true, forKey: Keys.isFirstLaunchBoolKey.rawValue)
             UserDefaults.standard.setValue(true, forKey: Keys.sortingBoolKey.rawValue)
-            UserDefaults.standard.setValue(true, forKey: Keys.imageSizeBoolKey.rawValue)
+            UserDefaults.standard.setValue(true, forKey: Keys.imageSizeShowingBoolKey.rawValue)
         }
     }
     
@@ -248,7 +244,7 @@ extension SubfolderViewController: UICollectionViewDataSource {
             
         }
         
-        if UserDefaults.standard.bool(forKey: Keys.imageSizeBoolKey.rawValue) {
+        if UserDefaults.standard.bool(forKey: Keys.imageSizeShowingBoolKey.rawValue) {
             let value = showImageSize(with: file, path: imagePath)
             
             if let image = UIImage(contentsOfFile: imagePath.path) {

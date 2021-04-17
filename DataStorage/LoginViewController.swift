@@ -4,9 +4,9 @@ import KeychainAccess
 
 class LoginViewController: UIViewController {
     
-    var buttonTitle: String?
-    
-    var passwordItems = [String]()
+    private var buttonTitle: String?
+    private let keychain = Keychain(service: KeychainConfiguration.serviceName)
+    private let accountName = "User"
     
     private let textField: UITextField = {
         let textField = UITextField()
@@ -41,18 +41,12 @@ class LoginViewController: UIViewController {
         view.backgroundColor = .white
         navigationController?.navigationBar.isHidden = true
         
-        updateKeychainData()
         setupButtonTitle()
         setupLayout()
     }
     
-    private func updateKeychainData() {
-        let keychain = Keychain(service: KeychainConfiguration.serviceName)
-        passwordItems = keychain.allKeys()
-    }
-    
     private func setupButtonTitle() {
-        if passwordItems.isEmpty {
+        if keychain.allKeys().isEmpty {
             buttonTitle = "Создать пароль"
         } else {
             buttonTitle = "Введите пароль"
@@ -76,22 +70,12 @@ class LoginViewController: UIViewController {
             textField.text = ""
         case "Введите пароль":
             if checkingKeychainPassword() {
-                logInButton.setTitle("Повторите пароль", for: .normal)
-                textField.text = ""
+                let tabBarVC = TabBarController()
+                navigationController?.pushViewController(tabBarVC, animated: true)
             } else {
                 let title = "Неверный пароль"
                 showAlert(with: title)
                 textField.text = ""
-            }
-        case "Повторите пароль":
-            if checkingKeychainPassword() {
-                let tabBarVC = TabBarController()
-                navigationController?.pushViewController(tabBarVC, animated: true)
-            } else {
-                let title = "Пароль не совпадает"
-                showAlert(with: title)
-                textField.text = ""
-                logInButton.setTitle("Введите пароль", for: .normal)
             }
         default:
             break
@@ -100,16 +84,11 @@ class LoginViewController: UIViewController {
     
     private func createPassword() {
         guard let password = textField.text, !password.isEmpty else { return }
-        let keychain = Keychain(service: KeychainConfiguration.serviceName)
-        let accountName = "User"
         keychain[accountName] = password
-        passwordItems = keychain.allKeys()
     }
     
     private func checkingKeychainPassword() -> Bool {
         if let password = textField.text, !password.isEmpty {
-            let keychain = Keychain(service: KeychainConfiguration.serviceName)
-            let accountName = "User"
             if password == keychain[accountName] {
                 return true
             } else {

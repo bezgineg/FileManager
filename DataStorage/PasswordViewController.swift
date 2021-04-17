@@ -5,6 +5,9 @@ import KeychainAccess
 
 class PasswordViewController: UIViewController {
     
+    let keychain = Keychain(service: KeychainConfiguration.serviceName)
+    let accountName = "User"
+    
     private let label: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
@@ -63,15 +66,11 @@ class PasswordViewController: UIViewController {
     
     private func changePassword() {
         guard let password = textField.text, !password.isEmpty else { return }
-        let keychain = Keychain(service: KeychainConfiguration.serviceName)
-        let accountName = "User"
         keychain[accountName] = password
         label.text = "Текущий пароль: \(password)"
     }
     
     private func getPassword() {
-        let keychain = Keychain(service: KeychainConfiguration.serviceName)
-        let accountName = "User"
         guard let password = keychain[accountName] else { return }
         label.text = "Текущий пароль: \(password)"
     }
